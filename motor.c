@@ -93,7 +93,7 @@ float calculate_speed(int j1y, int speed_max)
 float calculate_angle(int j1x, int j1y)
 {
     float angle = atan2(j1x, j1y) * (180 / 3.1415926535);
-    angle = -angle; // Đảo góc quay
+    angle = -angle; 
     if (angle >= MAX_ANGLE)
     {
         angle += MAX_ANGLE;
