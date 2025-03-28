@@ -14,6 +14,7 @@
 #include "qrcode.h"
 #include <lwip/sockets.h>
 #include "motor.h" // Thư viện điều khiển motor riêng
+#include "oled.h"  // oled
 
 // Constants and definitions
 static const char *TAG = "app";
@@ -120,8 +121,10 @@ void udp_listener_task(void *pvParameters)
             float speed = calculate_speed(j1Y, speed_max);
             float raw_angle = calculate_angle(j1X, j1Y);
             float angle = normalize_angle(raw_angle);
-            servo_set_angle(90 + angle); 
+            // xe chạy motor quang ngân
+            servo_set_angle(90 + angle);
             motor_control(j1Y, 1024);
+
             vTaskDelay(pdMS_TO_TICKS(50));
         }
         else if (len < 0 && udp_running)
@@ -136,9 +139,11 @@ void udp_listener_task(void *pvParameters)
 
     close(sock);
     ESP_LOGI(TAG, "Đóng socket UDP");
+    oled_clear();
+    oled_print(0, 5, "close Socket UDP");
+    oled_display();
     vTaskDelete(NULL);
 }
-
 
 /*---------------------------------------------------------------
  * Khởi tạo và bắt đầu task UDP listener
@@ -207,6 +212,11 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             wifi_sta_config_t *wifi_sta_cfg = (wifi_sta_config_t *)event_data;
             ESP_LOGI(TAG, "Nhận thông tin Wi-Fi\n\tSSID : %s\n\tPassword : %s",
                      (const char *)wifi_sta_cfg->ssid, (const char *)wifi_sta_cfg->password);
+            oled_clear();
+            oled_print(10, 0, "Connected wifi");
+            oled_print(0, 1, "SSID %s", (const char *)wifi_sta_cfg->ssid);
+            oled_print(0, 2, "Password %s", (const char *)wifi_sta_cfg->password);
+            oled_display();
             break;
         }
         case WIFI_PROV_CRED_FAIL:
@@ -243,6 +253,9 @@ static void event_handler(void *arg, esp_event_base_t event_base,
             break;
         case WIFI_EVENT_STA_DISCONNECTED:
             ESP_LOGI(TAG, "Mất kết nối. Đang kết nối lại...");
+            oled_clear();
+            oled_print(5, 3, "Disconected........Try again");
+            oled_display();
             esp_wifi_connect();
             stop_udp_task();
             break;
@@ -254,6 +267,13 @@ static void event_handler(void *arg, esp_event_base_t event_base,
     {
         ip_event_got_ip_t *event = (ip_event_got_ip_t *)event_data;
         ESP_LOGI(TAG, "Kết nối thành công với IP: " IPSTR, IP2STR(&event->ip_info.ip));
+
+        oled_clear();
+        oled_print(10, 0, "IP Config");
+        oled_print(0, 2, "ip: " IPSTR, IP2STR(&event->ip_info.ip));
+        oled_print(0, 1, "port: %d", UDP_PORT);
+        oled_display();
+
         xEventGroupSetBits(wifi_event_group, WIFI_CONNECTED_EVENT);
         start_udp_task();
     }
@@ -321,6 +341,14 @@ void app_main(void)
     // Khởi tạo module motor (PWM, cấu hình GPIO)
     pwm_init();
     servo_init();
+    // khởi tạo màn oled
+    if (oled_init() != ESP_OK)
+    {
+        ESP_LOGE("APP", "OLED init failed");
+        return;
+    }
+
+    oled_clear();
 
     // Khởi tạo network stack và event loop
     ESP_ERROR_CHECK(esp_netif_init());
@@ -349,6 +377,9 @@ void app_main(void)
     if (!provisioned)
     {
         ESP_LOGI(TAG, "Bắt đầu quá trình provisioning");
+        oled_clear();
+        oled_print(0, 5, "Start provisioning");
+        oled_display();
         char service_name[12];
         get_device_service_name(service_name, sizeof(service_name));
 
@@ -380,6 +411,9 @@ void app_main(void)
     else
     {
         ESP_LOGI(TAG, "Đã được provision, khởi động Wi-Fi STA");
+        oled_clear();
+        oled_print(0, 5, "Start Wi-Fi STA");
+        oled_display();
         wifi_prov_mgr_deinit();
         wifi_init_sta();
     }
