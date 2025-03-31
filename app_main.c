@@ -19,7 +19,7 @@
 // Constants and definitions
 static const char *TAG = "app";
 #define EXAMPLE_PROV_SEC2_USERNAME "wifiprov"
-#define EXAMPLE_PROV_SEC2_PWD "abcd1234"
+#define EXAMPLE_PROV_SEC2_PWD "28090208"
 #define PROV_QR_VERSION "v1"
 #define PROV_TRANSPORT_BLE "ble"
 #define QRCODE_BASE_URL "https://espressif.github.io/esp-jumpstart/qrcode.html"
@@ -116,16 +116,20 @@ void udp_listener_task(void *pvParameters)
             memcpy(&j1Y, buffer + 2, 2);
             memcpy(&speed_max, buffer + 4, 2);
 
-            ESP_LOGI(TAG, "Nhận dữ liệu: j1X=%d, j1Y=%d, spd=%d", j1X, j1Y, speed_max);
-
-            float speed = calculate_speed(j1Y, speed_max);
             float raw_angle = calculate_angle(j1X, j1Y);
             float angle = normalize_angle(raw_angle);
+            ESP_LOGI(TAG, "Nhận dữ liệu: j1X=%d, j1Y=%d, angle=%.2f", j1X, j1Y, angle);
             // xe chạy motor quang ngân
             servo_set_angle(90 + angle);
             motor_control(j1Y, 1024);
 
-            vTaskDelay(pdMS_TO_TICKS(50));
+            oled_clear();
+            oled_print(0, 0, "x = %d", j1X);
+            oled_print(0, 1, "y = %d", j1Y);
+            oled_print(0, 3, "angle = %.2f", angle);
+            oled_display();
+
+            vTaskDelay(pdMS_TO_TICKS(10));
         }
         else if (len < 0 && udp_running)
         {
@@ -324,6 +328,9 @@ static void wifi_prov_print_qr(const char *name, const char *username,
     esp_qrcode_generate(&cfg, payload);
     ESP_LOGI(TAG, "Nếu không thấy QR code, copy URL sau vào trình duyệt:\n%s?data=%s",
              QRCODE_BASE_URL, payload);
+    oled_clear();
+    oled_print(0, 0, "%s", name);
+    oled_display();
 }
 
 /*---------------------------------------------------------------
@@ -331,16 +338,6 @@ static void wifi_prov_print_qr(const char *name, const char *username,
  *--------------------------------------------------------------*/
 void app_main(void)
 {
-    // Khởi tạo NVS
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
-    {
-        ESP_ERROR_CHECK(nvs_flash_erase());
-        ESP_ERROR_CHECK(nvs_flash_init());
-    }
-    // Khởi tạo module motor (PWM, cấu hình GPIO)
-    pwm_init();
-    servo_init();
     // khởi tạo màn oled
     if (oled_init() != ESP_OK)
     {
@@ -349,6 +346,17 @@ void app_main(void)
     }
 
     oled_clear();
+
+    // Khởi tạo NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ESP_ERROR_CHECK(nvs_flash_init());
+    }
+    // Khởi tạo module motor (PWM, cấu hình GPIO)
+    servo_init();
+    pwm_init();
 
     // Khởi tạo network stack và event loop
     ESP_ERROR_CHECK(esp_netif_init());
@@ -392,6 +400,7 @@ void app_main(void)
         ESP_ERROR_CHECK(example_get_sec2_verifier(&sec2_params.verifier, &sec2_params.verifier_len));
 
         const char *service_key = NULL;
+
         uint8_t custom_service_uuid[] = {
             0xb4, 0xdf, 0x5a, 0x1c, 0x3f, 0x6b, 0xf4, 0xbf,
             0xea, 0x4a, 0x82, 0x03, 0x04, 0x90, 0x1a, 0x02};
