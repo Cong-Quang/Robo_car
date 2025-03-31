@@ -1,30 +1,31 @@
-    #ifndef MOTOR_H
-    #define MOTOR_H
+#ifndef MOTOR_H
+#define MOTOR_H
 
-    #include <stdint.h>
+#include <stdint.h>
 
-    #ifdef __cplusplus
-    extern "C" {
-    #endif
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
-    // Motor configuration
-    #define PWM_GPIO 5
-    #define RPWM_GPIO 18
-    #define LPWM_GPIO 19
+// Motor configuration
+#define PWM_GPIO 5
+#define RPWM_GPIO 18
+#define LPWM_GPIO 19
 
-    #define LEDC_FREQ 1000
-    #define LEDC_RES LEDC_TIMER_10_BIT
+#define LEDC_FREQ 1000
+#define LEDC_RES LEDC_TIMER_10_BIT
 
-    // Servo configuration
-    #define SERVO_GPIO 13
-    #define SERVO_LEDC_FREQ 50
-    #define SERVO_LEDC_TIMER LEDC_TIMER_1
-    #define SERVO_LEDC_CHANNEL LEDC_CHANNEL_1
+// Servo configuration
+#define SERVO_GPIO 13
+#define SERVO_LEDC_FREQ 50
+#define SERVO_LEDC_TIMER LEDC_TIMER_1
+#define SERVO_LEDC_CHANNEL LEDC_CHANNEL_1
 
-    #define MAX_AXIS_VALUE 200
-    #define SPEED_MAX 256
-    #define MAX_ANGLE 90
-    #define MAX_ANGLE_REAL 40
+#define MAX_AXIS_VALUE 100
+#define SPEED_MAX 1024
+#define MAX_ANGLE 90
+#define MAX_ANGLE_REAL 60
 
     // Function prototypes
     void pwm_init(void);
@@ -39,8 +40,8 @@
     float calculate_angle(int j1x, int j1y);
     float normalize_angle(int angle);
 
-    #ifdef __cplusplus
-    }
-    #endif
+#ifdef __cplusplus
+}
+#endif
 
-    #endif // MOTOR_H
+#endif // MOTOR_H
